@@ -33,25 +33,22 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Consumption = void 0;
+exports.Pen = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
-const ConsumptionSchema = new mongoose_1.Schema({
-    birds: { type: Number },
-    birdAge: { type: String },
-    consumption: { type: Number },
-    amount: { type: Number },
-    unitPrice: { type: Number },
-    birdClass: { type: String },
-    feed: { type: String },
-    feedId: { type: String },
-    weight: { type: String },
-    remark: { type: String },
-    consumptionUnit: { type: String },
-    pen: { type: String },
-    staffName: { type: String },
-    type: { type: String },
-    createdAt: { type: Date },
+const PenSchema = new mongoose_1.Schema({
+    name: { type: String, required: true },
+    livestockId: { type: String },
+    livestockName: { type: String },
+    columns: {
+        type: [
+            {
+                name: { type: String, required: true },
+            },
+        ],
+        default: [],
+    },
+    createdAt: { type: Date, default: Date.now },
 }, {
-    timestamps: { createdAt: false, updatedAt: true },
+    timestamps: true,
 });
-exports.Consumption = mongoose_1.default.model('Consumption', ConsumptionSchema);
+exports.Pen = mongoose_1.default.model('Pen', PenSchema);

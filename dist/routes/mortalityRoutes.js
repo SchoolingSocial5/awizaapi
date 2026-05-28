@@ -5,10 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const multer_1 = __importDefault(require("multer"));
-const expenseController_1 = require("../controllers/expenseController");
+const mortalityController_1 = require("../controllers/mortalityController");
 const upload = (0, multer_1.default)();
 const router = express_1.default.Router();
-router.route('/latest').get(expenseController_1.getLatestExpenses);
-router.route('/:id').get(expenseController_1.getExpense).patch(upload.any(), expenseController_1.updateExpense);
-router.route('/').get(expenseController_1.getExpenses).post(upload.any(), expenseController_1.createExpense).patch(expenseController_1.deleteExpenses);
+router.route('/search').get(mortalityController_1.searchMortalities);
+router.route('/:id').get(mortalityController_1.getMortality).patch(upload.any(), mortalityController_1.updateMortality);
+router.route('/').get(mortalityController_1.getMortalities).post(upload.any(), mortalityController_1.createMortality);
 exports.default = router;

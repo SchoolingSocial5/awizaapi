@@ -15,12 +15,32 @@ const query_1 = require("../utils/query");
 const fileUpload_1 = require("../utils/fileUpload");
 const errorHandler_1 = require("../utils/errorHandler");
 const app_1 = require("../app");
+const body_1 = require("../utils/body");
 const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const uploadedFiles = yield (0, fileUpload_1.uploadFilesToS3)(req);
         uploadedFiles.forEach((file) => {
             req.body[file.fieldName] = file.s3Url;
         });
+        (0, body_1.parseJsonFields)(req, ['penDistributions']);
+        if (typeof req.body.penDistributions === 'string') {
+            try {
+                req.body.penDistributions = JSON.parse(req.body.penDistributions);
+            }
+            catch (e) {
+                console.error("Error parsing penDistributions:", e);
+            }
+        }
+        if (req.body.type === 'Livestock') {
+            const distributions = req.body.penDistributions || [];
+            const totalUnits = Number(req.body.units) || 0;
+            const distributedUnits = distributions.reduce((sum, d) => sum + Number(d.units), 0);
+            if (distributedUnits > totalUnits) {
+                return res.status(400).json({
+                    message: `Total distributed units (${distributedUnits}) exceeds product quantity (${totalUnits})`
+                });
+            }
+        }
         yield productModel_1.Product.create(req.body);
         const result = yield (0, query_1.queryData)(productModel_1.Product, req);
         res.status(200).json(Object.assign({ message: 'Product is created successfully' }, result));
@@ -50,6 +70,29 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         uploadedFiles.forEach((file) => {
             req.body[file.fieldName] = file.s3Url;
         });
+        (0, body_1.parseJsonFields)(req, ['penDistributions']);
+        if (typeof req.body.penDistributions === 'string') {
+            try {
+                req.body.penDistributions = JSON.parse(req.body.penDistributions);
+            }
+            catch (e) {
+                console.error("Error parsing penDistributions:", e);
+            }
+        }
+        if (req.body.type === 'Livestock' || req.body.isSelling) {
+            const distributions = req.body.penDistributions || [];
+            let totalUnits = Number(req.body.units);
+            if (isNaN(totalUnits) || totalUnits === 0) {
+                const existingProduct = yield productModel_1.Product.findById(req.params.id);
+                totalUnits = existingProduct ? existingProduct.units : 0;
+            }
+            const distributedUnits = distributions.reduce((sum, d) => sum + Number(d.units), 0);
+            if (distributedUnits > totalUnits) {
+                return res.status(400).json({
+                    message: `Total distributed units (${distributedUnits}) exceeds product quantity (${totalUnits})`
+                });
+            }
+        }
         const product = yield productModel_1.Product.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true,
@@ -147,6 +190,8 @@ const postProductStock = (req, res) => __awaiter(void 0, void 0, void 0, functio
             const percent = req.body.units / (stock.units);
             yield productModel_1.Product.findByIdAndUpdate(req.body.parentProductId, { percentageProduction: percent });
             req.body.percentageProduction = percent;
+            req.body.purchaseUnit = product.purchaseUnit;
+            req.body.unitPerPurchase = product.unitPerPurchase;
         }
         const stocking = yield productModel_1.Stocking.create(req.body);
         const result = yield (0, query_1.queryData)(productModel_1.Stocking, req);

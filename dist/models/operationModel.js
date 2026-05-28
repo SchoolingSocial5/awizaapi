@@ -44,10 +44,18 @@ const OperationSchema = new mongoose_1.Schema({
     remark: { type: String },
     medication: { type: String },
     quantity: { type: String },
+    pen: { type: String },
+    penId: { type: String },
+    productionData: { type: [Object], default: [] },
+    productId: { type: String },
+    productName: { type: String },
+    unitName: { type: String },
+    unitPerPurchase: { type: Number, default: 1 },
     staffName: { type: String },
     userId: { type: String },
-    createdAt: { type: Date, default: Date.now },
+    type: { type: String },
+    createdAt: { type: Date },
 }, {
-    timestamps: true,
+    timestamps: { createdAt: false, updatedAt: true },
 });
 exports.Operation = mongoose_1.default.model('Operation', OperationSchema);
