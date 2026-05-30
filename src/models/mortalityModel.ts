@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface IMortality extends Document {
-  _id: any
+  _id: string
   birds: number
   birdAge: string
   birdClass: string

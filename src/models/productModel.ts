@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface IProduct extends Document {
-  _id: any
+  _id: string
   name: string
   purchaseUnit: string
   units: number
@@ -65,7 +65,7 @@ const ProductSchema: Schema = new Schema(
 export const Product = mongoose.model<IProduct>('Product', ProductSchema)
 
 export interface IStocking extends Document {
-  _id: any
+  _id: string
   name: string
   units: number
   picture: string

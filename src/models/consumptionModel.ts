@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose'
 
 export interface IConsumption extends Document {
-  _id: any
+  _id: string
   birds: number
   birdAge: string
   consumption: number
