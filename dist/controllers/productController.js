@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getProductStocks = exports.deleteProductStocking = exports.updateProductStock = exports.postProductStock = exports.searchProducts = exports.deleteProduct = exports.getProducts = exports.updateProduct = exports.getAProduct = exports.createProduct = void 0;
+exports.transferLivestock = exports.getProductStocks = exports.deleteProductStocking = exports.updateProductStock = exports.postProductStock = exports.searchProducts = exports.deleteProduct = exports.getProducts = exports.updateProduct = exports.getAProduct = exports.createProduct = void 0;
 const productModel_1 = require("../models/productModel");
 const query_1 = require("../utils/query");
 const fileUpload_1 = require("../utils/fileUpload");
@@ -258,3 +258,106 @@ const getProductStocks = (req, res) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.getProductStocks = getProductStocks;
+const transferLivestock = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { fromPenId, toPenId, toPenName, quantity, transferAs } = req.body;
+        const unitsToTransfer = Number(quantity);
+        if (isNaN(unitsToTransfer) || unitsToTransfer <= 0) {
+            res.status(400).json({ message: 'Invalid quantity' });
+            return;
+        }
+        const product = yield productModel_1.Product.findById(req.params.id);
+        if (!product) {
+            res.status(404).json({ message: 'Product not found' });
+            return;
+        }
+        if (!product.penDistributions) {
+            product.penDistributions = [];
+        }
+        const fromDistribution = product.penDistributions.find(d => d.penId === fromPenId);
+        if (!fromDistribution || fromDistribution.units < unitsToTransfer) {
+            res.status(400).json({ message: 'Insufficient livestock in the source pen' });
+            return;
+        }
+        const targetName = transferAs ? transferAs.trim() : product.name;
+        if (targetName !== product.name) {
+            // Inter-product transfer
+            product.units -= unitsToTransfer;
+            fromDistribution.units -= unitsToTransfer;
+            if (fromDistribution.units === 0) {
+                product.penDistributions = product.penDistributions.filter(d => d.penId !== fromPenId);
+            }
+            yield product.save();
+            let targetProduct = yield productModel_1.Product.findOne({ name: targetName });
+            if (targetProduct) {
+                // Increment existing product
+                targetProduct.units += unitsToTransfer;
+                if (!targetProduct.penDistributions)
+                    targetProduct.penDistributions = [];
+                let toDistribution = targetProduct.penDistributions.find(d => d.penId === toPenId);
+                if (toDistribution) {
+                    toDistribution.units += unitsToTransfer;
+                }
+                else {
+                    targetProduct.penDistributions.push({
+                        penId: toPenId,
+                        penName: toPenName,
+                        units: unitsToTransfer,
+                        dateOfBirth: fromDistribution.dateOfBirth
+                    });
+                }
+                yield targetProduct.save();
+            }
+            else {
+                // Create new product copying source traits
+                const newProductData = Object.assign({}, product.toObject());
+                delete newProductData._id;
+                delete newProductData.createdAt;
+                delete newProductData.updatedAt;
+                newProductData.name = targetName;
+                newProductData.units = unitsToTransfer;
+                newProductData.penDistributions = [{
+                        penId: toPenId,
+                        penName: toPenName,
+                        units: unitsToTransfer,
+                        dateOfBirth: fromDistribution.dateOfBirth
+                    }];
+                yield productModel_1.Product.create(newProductData);
+            }
+        }
+        else {
+            // Normal intra-product transfer
+            fromDistribution.units -= unitsToTransfer;
+            let toDistribution = product.penDistributions.find(d => d.penId === toPenId);
+            if (toDistribution) {
+                toDistribution.units += unitsToTransfer;
+            }
+            else {
+                product.penDistributions.push({
+                    penId: toPenId,
+                    penName: toPenName,
+                    units: unitsToTransfer,
+                    dateOfBirth: fromDistribution.dateOfBirth
+                });
+            }
+            if (fromDistribution.units === 0) {
+                product.penDistributions = product.penDistributions.filter(d => d.penId !== fromPenId);
+            }
+            yield product.save();
+        }
+        let returnProducts = [product];
+        if (targetName !== product.name) {
+            const createdTarget = yield productModel_1.Product.findOne({ name: targetName });
+            if (createdTarget)
+                returnProducts.push(createdTarget);
+        }
+        res.status(200).json({
+            message: 'Livestock transferred successfully',
+            updatedProducts: returnProducts
+        });
+    }
+    catch (error) {
+        (0, errorHandler_1.handleError)(res, undefined, undefined, error);
+    }
+});
+exports.transferLivestock = transferLivestock;

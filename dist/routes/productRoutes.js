@@ -17,6 +17,8 @@ router
     .route('/stocking/:id')
     .delete(productController_1.deleteProductStocking)
     .patch(upload.any(), productController_1.updateProductStock);
+router.route('/stocks/:id').delete(productController_1.deleteProductStocking);
+router.route('/:id/transfer').patch(upload.any(), productController_1.transferLivestock);
 router
     .route('/:id')
     .get(productController_1.getAProduct)

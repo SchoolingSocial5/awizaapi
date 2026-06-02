@@ -11,6 +11,7 @@ import {
   getProductStocks,
   postProductStock,
   searchProducts,
+  transferLivestock,
   updateProduct,
   updateProductStock,
 } from '../controllers/productController'
@@ -27,6 +28,9 @@ router
   .route('/stocking/:id')
   .delete(deleteProductStocking)
   .patch(upload.any(), updateProductStock)
+
+router.route('/stocks/:id').delete(deleteProductStocking)
+router.route('/:id/transfer').patch(upload.any(), transferLivestock)
 
 router
   .route('/:id')

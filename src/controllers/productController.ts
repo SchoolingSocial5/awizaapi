@@ -291,3 +291,111 @@ export const getProductStocks = async (req: Request, res: Response) => {
     handleError(res, undefined, undefined, error)
   }
 }
+
+export const transferLivestock = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { fromPenId, toPenId, toPenName, quantity, transferAs } = req.body
+    const unitsToTransfer = Number(quantity)
+
+    if (isNaN(unitsToTransfer) || unitsToTransfer <= 0) {
+      res.status(400).json({ message: 'Invalid quantity' })
+      return
+    }
+
+    const product = await Product.findById(req.params.id)
+    if (!product) {
+      res.status(404).json({ message: 'Product not found' })
+      return
+    }
+
+    if (!product.penDistributions) {
+      product.penDistributions = []
+    }
+
+    const fromDistribution = product.penDistributions.find(d => d.penId === fromPenId)
+    if (!fromDistribution || fromDistribution.units < unitsToTransfer) {
+      res.status(400).json({ message: 'Insufficient livestock in the source pen' })
+      return
+    }
+
+    const targetName = transferAs ? transferAs.trim() : product.name
+
+    if (targetName !== product.name) {
+      // Inter-product transfer
+      product.units -= unitsToTransfer
+      fromDistribution.units -= unitsToTransfer
+      if (fromDistribution.units === 0) {
+        product.penDistributions = product.penDistributions.filter(d => d.penId !== fromPenId)
+      }
+      await product.save()
+
+      let targetProduct = await Product.findOne({ name: targetName })
+      
+      if (targetProduct) {
+        // Increment existing product
+        targetProduct.units += unitsToTransfer
+        if (!targetProduct.penDistributions) targetProduct.penDistributions = []
+        let toDistribution = targetProduct.penDistributions.find(d => d.penId === toPenId)
+        if (toDistribution) {
+          toDistribution.units += unitsToTransfer
+        } else {
+          targetProduct.penDistributions.push({
+            penId: toPenId,
+            penName: toPenName,
+            units: unitsToTransfer,
+            dateOfBirth: fromDistribution.dateOfBirth
+          })
+        }
+        await targetProduct.save()
+      } else {
+        // Create new product copying source traits
+        const newProductData = { ...product.toObject() }
+        delete (newProductData as any)._id
+        delete (newProductData as any).createdAt
+        delete (newProductData as any).updatedAt
+        
+        newProductData.name = targetName
+        newProductData.units = unitsToTransfer
+        newProductData.penDistributions = [{
+          penId: toPenId,
+          penName: toPenName,
+          units: unitsToTransfer,
+          dateOfBirth: fromDistribution.dateOfBirth
+        }]
+        
+        await Product.create(newProductData)
+      }
+    } else {
+      // Normal intra-product transfer
+      fromDistribution.units -= unitsToTransfer
+      let toDistribution = product.penDistributions.find(d => d.penId === toPenId)
+      if (toDistribution) {
+        toDistribution.units += unitsToTransfer
+      } else {
+        product.penDistributions.push({
+          penId: toPenId,
+          penName: toPenName,
+          units: unitsToTransfer,
+          dateOfBirth: fromDistribution.dateOfBirth
+        })
+      }
+
+      if (fromDistribution.units === 0) {
+        product.penDistributions = product.penDistributions.filter(d => d.penId !== fromPenId)
+      }
+      await product.save()
+    }
+    let returnProducts = [product]
+    if (targetName !== product.name) {
+      const createdTarget = await Product.findOne({ name: targetName })
+      if (createdTarget) returnProducts.push(createdTarget)
+    }
+
+    res.status(200).json({
+      message: 'Livestock transferred successfully',
+      updatedProducts: returnProducts
+    })
+  } catch (error: any) {
+    handleError(res, undefined, undefined, error)
+  }
+}
