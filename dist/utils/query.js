@@ -312,6 +312,21 @@ const queryData = (model, req) => __awaiter(void 0, void 0, void 0, function* ()
                             },
                         },
                         totalTransactions: { $sum: 1 },
+                        totalQuantity: {
+                            $sum: {
+                                $cond: [
+                                    { $eq: ['$isProfit', true] },
+                                    {
+                                        $reduce: {
+                                            input: { $ifNull: ["$cartProducts", []] },
+                                            initialValue: 0,
+                                            in: { $add: ["$$value", { $convert: { input: { $ifNull: ["$$this.cartUnits", 0] }, to: "double", onError: 0, onNull: 0 } }] }
+                                        }
+                                    },
+                                    0
+                                ]
+                            }
+                        }
                     },
                 },
             ];

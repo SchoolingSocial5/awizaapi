@@ -7,6 +7,7 @@ import { uploadFilesToS3 } from '../utils/fileUpload'
 import { User } from '../models/users/userModel'
 import { sendNotification } from '../utils/sendNotification'
 import { io } from '../app'
+import { Company } from '../models/company/companyModel'
 
 export const purchaseProducts = async (req: Request, res: Response) => {
   try {
@@ -157,15 +158,19 @@ export const createTrasanction = async (req: Request, res: Response) => {
         message: 'Some items could not be processed due to insufficient stock. Please refresh and try again.',
       })
     }
+    const company = await Company.findOne()
+    const prefix = 'AWZ'
+    const domain = company && company.domain ? company.domain.replace(/^https?:\/\//, '').split('/')[0] : 'awizafarms.com'
+
     const sales = await Transaction.countDocuments()
-    req.body.invoiceNumber = `SBG-${req.body.invoiceNumber}${sales + 1}`
+    req.body.invoiceNumber = `${prefix}-${req.body.invoiceNumber}${sales + 1}`
 
     if (!req.body.email || req.body.email.trim() === '' || req.body.email === 'undefined') {
       const namePart = req.body.fullName
         ? req.body.fullName.toLowerCase().replace(/[^a-z0-9]/g, '')
         : 'customer'
       const randomPart = Math.floor(1000 + Math.random() * 9000)
-      req.body.email = `${namePart}${randomPart}@sbg.com`
+      req.body.email = `${namePart}${randomPart}@${domain}`
     }
 
     const transaction = await Transaction.create(req.body)

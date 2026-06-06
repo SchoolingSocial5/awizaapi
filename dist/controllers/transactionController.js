@@ -18,6 +18,7 @@ const fileUpload_1 = require("../utils/fileUpload");
 const userModel_1 = require("../models/users/userModel");
 const sendNotification_1 = require("../utils/sendNotification");
 const app_1 = require("../app");
+const companyModel_1 = require("../models/company/companyModel");
 const purchaseProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const product = req.body.product;
@@ -147,14 +148,17 @@ const createTrasanction = (req, res) => __awaiter(void 0, void 0, void 0, functi
                 message: 'Some items could not be processed due to insufficient stock. Please refresh and try again.',
             });
         }
+        const company = yield companyModel_1.Company.findOne();
+        const prefix = 'AWZ';
+        const domain = company && company.domain ? company.domain.replace(/^https?:\/\//, '').split('/')[0] : 'awizafarms.com';
         const sales = yield transactionModel_1.Transaction.countDocuments();
-        req.body.invoiceNumber = `SBG-${req.body.invoiceNumber}${sales + 1}`;
+        req.body.invoiceNumber = `${prefix}-${req.body.invoiceNumber}${sales + 1}`;
         if (!req.body.email || req.body.email.trim() === '' || req.body.email === 'undefined') {
             const namePart = req.body.fullName
                 ? req.body.fullName.toLowerCase().replace(/[^a-z0-9]/g, '')
                 : 'customer';
             const randomPart = Math.floor(1000 + Math.random() * 9000);
-            req.body.email = `${namePart}${randomPart}@sbg.com`;
+            req.body.email = `${namePart}${randomPart}@${domain}`;
         }
         const transaction = yield transactionModel_1.Transaction.create(req.body);
         if (!req.body.userId || req.body.userId === '') {
