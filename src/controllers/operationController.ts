@@ -220,8 +220,8 @@ export const updateOperation = async (req: Request, res: Response) => {
                 if (pro) {
                     // Check if decreasing stock (diff < 0), ensure no negative result
                     if (diff < 0 && pro.units < Math.abs(diff)) {
-                        return res.status(400).json({ 
-                            message: `Insufficient stock to update operation for ${pro.name}. Available: ${pro.units}` 
+                        return res.status(400).json({
+                            message: `Insufficient stock to update operation for ${pro.name}. Available: ${pro.units}`
                         })
                     }
 

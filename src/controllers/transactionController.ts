@@ -113,7 +113,7 @@ export const createTrasanction = async (req: Request, res: Response) => {
         (p) => p._id.toString() === cartItem._id.toString()
       )
       if (!product) continue
-      if (product.units < cartItem.cartUnits * cartItem.unitPerPurchase) {
+      if (product.units < cartItem.cartUnits * (cartItem.unitPerPurchase || 1)) {
         outOfStock.push({
           name: product.name,
           available: product.units,
@@ -240,7 +240,7 @@ export const massDeleteTrasanction = async (req: Request, res: Response) => {
       for (let i = 0; i < tx.cartProducts.length; i++) {
         const cart = tx.cartProducts[i]
         await Product.findByIdAndUpdate(cart._id, {
-          $inc: { units: cart.cartUnits * cart.unitPerPurchase },
+          $inc: { units: cart.cartUnits * (cart.unitPerPurchase || 1) },
         })
       }
     }

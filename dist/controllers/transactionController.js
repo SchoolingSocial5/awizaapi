@@ -108,7 +108,7 @@ const createTrasanction = (req, res) => __awaiter(void 0, void 0, void 0, functi
             const product = dbProducts.find((p) => p._id.toString() === cartItem._id.toString());
             if (!product)
                 continue;
-            if (product.units < cartItem.cartUnits * cartItem.unitPerPurchase) {
+            if (product.units < cartItem.cartUnits * (cartItem.unitPerPurchase || 1)) {
                 outOfStock.push({
                     name: product.name,
                     available: product.units,
@@ -218,7 +218,7 @@ const massDeleteTrasanction = (req, res) => __awaiter(void 0, void 0, void 0, fu
             for (let i = 0; i < tx.cartProducts.length; i++) {
                 const cart = tx.cartProducts[i];
                 yield productModel_1.Product.findByIdAndUpdate(cart._id, {
-                    $inc: { units: cart.cartUnits * cart.unitPerPurchase },
+                    $inc: { units: cart.cartUnits * (cart.unitPerPurchase || 1) },
                 });
             }
         }
