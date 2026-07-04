@@ -317,11 +317,29 @@ const queryData = (model, req) => __awaiter(void 0, void 0, void 0, function* ()
                                 $cond: [
                                     { $eq: ['$isProfit', true] },
                                     {
-                                        $reduce: {
-                                            input: { $ifNull: ["$cartProducts", []] },
-                                            initialValue: 0,
-                                            in: { $add: ["$$value", { $convert: { input: { $ifNull: ["$$this.cartUnits", 0] }, to: "double", onError: 0, onNull: 0 } }] }
-                                        }
+                                        $add: [
+                                            // Sum cartUnits from cartProducts array (new transactions)
+                                            {
+                                                $reduce: {
+                                                    input: { $ifNull: ["$cartProducts", []] },
+                                                    initialValue: 0,
+                                                    in: { $add: ["$$value", { $convert: { input: { $ifNull: ["$$this.cartUnits", 0] }, to: "double", onError: 0, onNull: 0 } }] }
+                                                }
+                                            },
+                                            // Also include single product.cartUnits for legacy transactions
+                                            {
+                                                $cond: [
+                                                    {
+                                                        $and: [
+                                                            { $eq: [{ $size: { $ifNull: ["$cartProducts", []] } }, 0] },
+                                                            { $gt: [{ $ifNull: ["$product.cartUnits", 0] }, 0] }
+                                                        ]
+                                                    },
+                                                    { $convert: { input: { $ifNull: ["$product.cartUnits", 0] }, to: "double", onError: 0, onNull: 0 } },
+                                                    0
+                                                ]
+                                            }
+                                        ]
                                     },
                                     0
                                 ]
